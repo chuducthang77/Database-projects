@@ -1,0 +1,416 @@
+
+For each user, report the user id, the number of questions, the number of answers, the total number of votes casted, and the total number of votes received (on all their posts). Report every user who has a non-zero count in at least one category. Hint: you may find outer join and subqueries in the from clause useful.
+
+select posts.poster, count(questions.pid) as pid_ques -- for each user, total number of q
+from posts, questions
+where posts.pid = questions.pid
+group by posts.poster;
+(1)
+u002|1
+u023|1
+u028|1
+u030|3
+u035|1
+u040|3
+u043|1
+u049|1
+u050|3
+
+select posts.poster, count(answers.pid) as pid_ans -- for each user, total number of q
+from posts, answers
+where posts.pid = answers.pid
+group by posts.poster;
+(2)
+u007|1
+u012|1
+u013|1
+u023|5
+u028|2
+u030|2
+u035|1
+u040|3
+u050|3
+
+select votes.uid, count(*) as pid_cast -- for each user, total number of casted votes
+from votes
+group by votes.uid;
+(3)
+u001|1
+u002|8
+u003|5
+u004|4
+u005|10
+u006|6
+u007|6
+u008|4
+u009|6
+u010|4
+u011|4
+u012|5
+u013|4
+u014|2
+u015|8
+u016|2
+u017|8
+u021|2
+u022|1
+u024|8
+u030|1
+u032|8
+u034|1
+u038|1
+u043|2
+u044|1
+
+select t1.poster, sum(num) as total from ( -- for each user, total number of received votes
+select posts.poster, votes.pid, count(votes.vno) as num
+from votes, posts
+where votes.pid = posts.pid
+group by votes.pid ) t1
+group by t1.poster;
+(4)
+u002|5
+u007|22
+u012|1
+u013|1
+u023|1
+u028|6
+u035|48
+u040|2
+u049|22
+u050|4
+
+-- Full outer join for (1), (2), (3), (4)
+
+select A.poster, A.pid_ques, B.pid_ans, C.pid_cast, D.total
+from (select posts.poster, count(questions.pid) as pid_ques 
+from posts, questions
+where posts.pid = questions.pid
+group by posts.poster) A
+left join 
+(select posts.poster, count(answers.pid) as pid_ans 
+from posts, answers
+where posts.pid = answers.pid
+group by posts.poster) B
+left join
+(select votes.uid, count(*) as pid_cast 
+from votes
+group by votes.uid) C
+left join 
+(select t1.poster, sum(num) as total from (
+select posts.poster, votes.pid, count(votes.vno) as num
+from votes, posts
+where votes.pid = posts.pid
+group by votes.pid ) t1
+group by t1.poster) D
+on A.poster = B.poster and B.poster = C.uid and C.uid = D.poster
+
+Union all
+
+select D.poster, A.pid_ques, B.pid_ans, C.pid_cast, D.total
+from (select t1.poster, sum(num) as total from (
+select posts.poster, votes.pid, count(votes.vno) as num
+from votes, posts
+where votes.pid = posts.pid
+group by votes.pid ) t1
+group by t1.poster) D
+left join
+(select votes.uid, count(*) as pid_cast
+from votes
+group by votes.uid) C
+left join
+(select posts.poster, count(answers.pid) as pid_ans
+from posts, answers
+where posts.pid = answers.pid
+group by posts.poster) B
+left join
+(select posts.poster, count(questions.pid) as pid_ques 
+from posts, questions
+where posts.pid = questions.pid
+group by posts.poster) A
+on D.poster = C.uid and C.uid = B.poster and B.poster = A.poster;
+
+(1) join (2)
+select A.poster, A.pid_ques, B.pid_ans
+from (select posts.poster, count(questions.pid) as pid_ques
+from posts, questions
+where posts.pid = questions.pid
+group by posts.poster) A left outer join (select posts.poster, count(answers.pid) as pid_ans
+from posts, answers
+where posts.pid = answers.pid
+group by posts.poster) B on A.poster = B.poster
+Union
+select B.poster, A.pid_ques, B.pid_ans
+From (select posts.poster, count(answers.pid) as pid_ans
+from posts, answers
+where posts.pid = answers.pid
+group by posts.poster) B left outer join (select posts.poster, count(questions.pid) as pid_ques
+from posts, questions
+where posts.pid = questions.pid
+group by posts.poster) A on B.poster = A.poster;
+
+(1) join (2) join (3)
+--------------------------------------------------------------------------------------
+select C.poster, C.pid_ques, C.pid_ans, D.pid_cast
+from (select A.poster, A.pid_ques, B.pid_ans
+from (select posts.poster, count(questions.pid) as pid_ques
+from posts, questions
+where posts.pid = questions.pid
+group by posts.poster) A left outer join (select posts.poster, count(answers.pid) as pid_ans
+from posts, answers
+where posts.pid = answers.pid
+group by posts.poster) B on A.poster = B.poster
+Union
+select B.poster, A.pid_ques, B.pid_ans
+From (select posts.poster, count(answers.pid) as pid_ans
+from posts, answers
+where posts.pid = answers.pid
+group by posts.poster) B left outer join (select posts.poster, count(questions.pid) as pid_ques
+from posts, questions
+where posts.pid = questions.pid
+group by posts.poster) A on B.poster = A.poster) C 
+left outer join 
+(select votes.uid, count(*) as pid_cast -- for each user, total number of casted votes
+from votes
+group by votes.uid) D
+On C.poster = D.uid
+
+Union
+
+select D.uid, C.pid_ques, C.pid_ans, D.pid_cast
+from (select votes.uid, count(*) as pid_cast 
+from votes
+group by votes.uid) D
+left outer join (
+select A.poster, A.pid_ques, B.pid_ans
+from (select posts.poster, count(questions.pid) as pid_ques
+from posts, questions
+where posts.pid = questions.pid
+group by posts.poster) A left outer join (select posts.poster, count(answers.pid) as pid_ans
+from posts, answers
+where posts.pid = answers.pid
+group by posts.poster) B on A.poster = B.poster
+Union
+select B.poster, A.pid_ques, B.pid_ans
+From (select posts.poster, count(answers.pid) as pid_ans
+from posts, answers
+where posts.pid = answers.pid
+group by posts.poster) B left outer join (select posts.poster, count(questions.pid) as pid_ques
+from posts, questions
+where posts.pid = questions.pid
+group by posts.poster) A on B.poster = A.poster) C
+On C.poster = D.uid
+
+--------------------------------------------------------------------------------------
+
+select F.poster, ifnull(F.pid_ques,0), ifnull(F.pid_ans,0), ifnull(F.pid_cast,0), ifnull(E.total,0)
+from
+ 
+(select C.poster, C.pid_ques, C.pid_ans, D.pid_cast
+from (select A.poster, A.pid_ques, B.pid_ans
+from (select posts.poster, count(questions.pid) as pid_ques
+from posts, questions
+where posts.pid = questions.pid
+group by posts.poster) A left outer join (select posts.poster, count(answers.pid) as pid_ans
+from posts, answers
+where posts.pid = answers.pid
+group by posts.poster) B on A.poster = B.poster
+Union
+select B.poster, A.pid_ques, B.pid_ans
+From (select posts.poster, count(answers.pid) as pid_ans
+from posts, answers
+where posts.pid = answers.pid
+group by posts.poster) B left outer join (select posts.poster, count(questions.pid) as pid_ques
+from posts, questions
+where posts.pid = questions.pid
+group by posts.poster) A on B.poster = A.poster) C 
+left outer join 
+(select votes.uid, count(*) as pid_cast -- for each user, total number of casted votes
+from votes
+group by votes.uid) D
+On C.poster = D.uid
+
+Union
+
+select D.uid, C.pid_ques, C.pid_ans, D.pid_cast
+from (select votes.uid, count(*) as pid_cast 
+from votes
+group by votes.uid) D
+left outer join (
+select A.poster, A.pid_ques, B.pid_ans
+from (select posts.poster, count(questions.pid) as pid_ques
+from posts, questions
+where posts.pid = questions.pid
+group by posts.poster) A left outer join (select posts.poster, count(answers.pid) as pid_ans
+from posts, answers
+where posts.pid = answers.pid
+group by posts.poster) B on A.poster = B.poster
+Union
+select B.poster, A.pid_ques, B.pid_ans
+From (select posts.poster, count(answers.pid) as pid_ans
+from posts, answers
+where posts.pid = answers.pid
+group by posts.poster) B left outer join (select posts.poster, count(questions.pid) as pid_ques
+from posts, questions
+where posts.pid = questions.pid
+group by posts.poster) A on B.poster = A.poster) C
+On C.poster = D.uid) F
+
+left outer join 
+
+(select t1.poster, sum(num) as total from (
+select posts.poster, votes.pid, count(votes.vno) as num
+from votes, posts
+where votes.pid = posts.pid
+group by votes.pid ) t1
+group by t1.poster) E
+
+on E.poster = F.poster
+
+
+union
+
+select E.poster, ifnull(F.pid_ques,0), ifnull(F.pid_ans,0), ifnull(F.pid_cast,0), ifnull(E.total,0)
+from 
+
+(select t1.poster, sum(num) as total from (
+select posts.poster, votes.pid, count(votes.vno) as num
+from votes, posts
+where votes.pid = posts.pid
+group by votes.pid ) t1
+group by t1.poster) E
+
+left outer join 
+
+(select C.poster, C.pid_ques, C.pid_ans, D.pid_cast
+from (select A.poster, A.pid_ques, B.pid_ans
+from (select posts.poster, count(questions.pid) as pid_ques
+from posts, questions
+where posts.pid = questions.pid
+group by posts.poster) A left outer join (select posts.poster, count(answers.pid) as pid_ans
+from posts, answers
+where posts.pid = answers.pid
+group by posts.poster) B on A.poster = B.poster
+Union
+select B.poster, A.pid_ques, B.pid_ans
+From (select posts.poster, count(answers.pid) as pid_ans
+from posts, answers
+where posts.pid = answers.pid
+group by posts.poster) B left outer join (select posts.poster, count(questions.pid) as pid_ques
+from posts, questions
+where posts.pid = questions.pid
+group by posts.poster) A on B.poster = A.poster) C 
+left outer join 
+(select votes.uid, count(*) as pid_cast -- for each user, total number of casted votes
+from votes
+group by votes.uid) D
+On C.poster = D.uid
+
+Union
+
+select D.uid, C.pid_ques, C.pid_ans, D.pid_cast
+from (select votes.uid, count(*) as pid_cast 
+from votes
+group by votes.uid) D
+left outer join (
+select A.poster, A.pid_ques, B.pid_ans
+from (select posts.poster, count(questions.pid) as pid_ques
+from posts, questions
+where posts.pid = questions.pid
+group by posts.poster) A left outer join (select posts.poster, count(answers.pid) as pid_ans
+from posts, answers
+where posts.pid = answers.pid
+group by posts.poster) B on A.poster = B.poster
+Union
+select B.poster, A.pid_ques, B.pid_ans
+From (select posts.poster, count(answers.pid) as pid_ans
+from posts, answers
+where posts.pid = answers.pid
+group by posts.poster) B left outer join (select posts.poster, count(questions.pid) as pid_ques
+from posts, questions
+where posts.pid = questions.pid
+group by posts.poster) A on B.poster = A.poster) C
+On C.poster = D.uid) F
+
+on F.poster = E.poster
+
+u001|||1|
+u002|1||8|5
+u003|||5|
+u004|||4|
+u005|||10|
+u006|||6|
+u007||1|6|22
+u008|||4|
+u009|||6|
+u010|||4|
+u011|||4|
+u012||1|5|1
+u013||1|4|1
+u014|||2|
+u015|||8|
+u016|||2|
+u017|||8|
+u021|||2|
+u022|||1|
+u023|1|5||1
+u024|||8|
+u028|1|2||6
+u030|3|2|1|
+u032|||8|
+u034|||1|
+u035|1|1||48
+u038|||1|
+u040|3|3||2
+u043|1||2|
+u044|||1|
+u049|1|||22
+u050|3|3||4
+
+
+select
+    E.poster,
+    A.pid_ques,
+    B.pid_ans,
+    C.pid_cast,
+    D.total
+from (
+    select distinct A.poster from (select posts.poster, count(questions.pid) as pid_ques -- for each user, total number of q
+from posts, questions
+where posts.pid = questions.pid
+group by posts.poster) A
+    union
+    select distinct B.poster from (select posts.poster, count(answers.pid) as pid_ans -- for each user, total number of q
+from posts, answers
+where posts.pid = answers.pid
+group by posts.poster) B
+    union
+    select distinct C.uid from (select votes.uid, count(*) as pid_cast -- for each user, total number of casted votes
+from votes
+group by votes.uid) C
+    union
+    select distinct D.poster from (select t1.poster, sum(num) as total from ( -- for each user, total number of received votes
+select posts.poster, votes.pid, count(votes.vno) as num
+from votes, posts
+where votes.pid = posts.pid
+group by votes.pid ) t1
+group by t1.poster) D
+) as E
+    left outer join (select posts.poster, count(questions.pid) as pid_ques -- for each user, total number of q
+from posts, questions
+where posts.pid = questions.pid
+group by posts.poster) A on A.poster = E.poster
+    left outer join (select posts.poster, count(answers.pid) as pid_ans -- for each user, total number of q
+from posts, answers
+where posts.pid = answers.pid
+group by posts.poster) B on B.poster = E.poster
+    left outer join (select votes.uid, count(*) as pid_cast -- for each user, total number of casted votes
+from votes
+group by votes.uid) C on C.uid = E.poster
+    left outer join (select t1.poster, sum(num) as total from ( -- for each user, total number of received votes
+select posts.poster, votes.pid, count(votes.vno) as num
+from votes, posts
+where votes.pid = posts.pid
+group by votes.pid ) t1
+group by t1.poster) D on D.poster = E.poster;
+

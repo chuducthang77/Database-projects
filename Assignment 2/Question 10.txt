@@ -1,0 +1,207 @@
+
+#10. Using the view created in Q9, for each user city, find the number of users, the total number of gold badges given to the users of the location, the average number of questions per user of the location within the past month, and the total number of votes received by posts made within the past month by users from that location.
+
+select users.city, count(*)
+from users
+group by users.city;
+
+Calgary|2 	-- for each city, number of users
+Edmonton|6
+Halifax|7
+Ottawa|3
+Quebec City|4
+Regina|4
+Toronto|9
+Vancouver|5
+Victoria|4
+Whitehouse|1
+Winnipeg|5
+
+select users.city, ubadges.uid -- city of user with gold badge
+from ubadges, badges, users
+where ubadges.bname = badges.bname
+and badges.type = 'gold'
+and ubadges.uid = users.uid;
+
+Vancouver|u002
+Quebec City|u005
+Edmonton|u043
+Edmonton|u043
+Edmonton|u043
+Regina|u028
+Regina|u028
+Ottawa|u014
+
+select users.city, count(ubadges.uid) -- each city number of gold badge
+from ubadges, badges, users
+where ubadges.bname = badges.bname
+and badges.type = 'gold'
+and ubadges.uid = users.uid
+group by users.city;
+
+Edmonton|3
+Ottawa|1
+Quebec City|1
+Regina|2
+Vancouver|1
+
+
+select A.city, A.cnt, B.ucnt
+from 
+(select users.city, count(*) as cnt  -- left join 2 tables above
+from users
+group by users.city) A 
+left join 
+(select users.city, count(ubadges.uid) as ucnt
+from ubadges, badges, users
+where ubadges.bname = badges.bname
+and badges.type = 'gold'
+and ubadges.uid = users.uid
+group by users.city
+) B
+On A.city = B.city;
+
+Calgary|2|
+Edmonton|6|3
+Halifax|7|
+Ottawa|3|1
+Quebec City|4|1
+Regina|4|2
+Toronto|9|
+Vancouver|5|1
+Victoria|4|
+Whitehouse|1|
+Winnipeg|5|
+
+select users.city, count(questions.pid) as cnt -- for each city, number of ques within past month
+from questions, posts, users
+where questions.pid = posts.pid
+and datetime(posts.pdate) >= datetime('now', '-1 month')
+and users.uid = posts.poster
+group by users.city;
+
+Edmonton|1
+Quebec City|1
+Regina|1
+Toronto|1
+Victoria|1
+
+select A.city, A.cnt, B.ucnt, C.qcnt * 1.0 /A.cnt  -- for each city, number of ques/ users
+from 
+(select users.city, count(*) as cnt 
+from users
+group by users.city) A 
+left join 
+(select users.city, count(ubadges.uid) as ucnt
+from ubadges, badges, users
+where ubadges.bname = badges.bname
+and badges.type = 'gold'
+and ubadges.uid = users.uid
+group by users.city
+) B
+On A.city = B.city
+left join
+(select users.city, count(questions.pid) as qcnt
+from questions, posts, users
+where questions.pid = posts.pid
+and datetime(posts.pdate) >= datetime('now', '-1 month')
+and users.uid = posts.poster
+group by users.city) C
+On A.city = C.city;
+
+Calgary|2||
+Edmonton|6|3|0.166666666666667
+Halifax|7||
+Ottawa|3|1|
+Quebec City|4|1|0.25
+Regina|4|2|0.25
+Toronto|9||0.111111111111111
+Vancouver|5|1|
+Victoria|4||0.25
+Whitehouse|1||
+Winnipeg|5||
+
+select users.city, count(votes.vno)
+from votes, posts, users
+where votes.pid = posts.pid
+and users.uid = posts.poster
+group by votes.pid;
+
+Vancouver|5
+Regina|1
+Halifax|1
+Halifax|1
+Regina|2
+Halifax|1
+Regina|2
+Halifax|1
+Regina|2
+Edmonton|1
+Edmonton|1
+Quebec City|1
+Quebec City|1
+Toronto|24
+Toronto|24
+Victoria|22
+Ottawa|22
+
+select A.city, sum(A.cnt).  -- Total of received votes for each city
+from ( select users.city, count(votes.vno) as cnt
+from votes, posts, users
+where votes.pid = posts.pid
+and users.uid = posts.poster
+group by votes.pid) A
+group by A.city
+
+Edmonton|2
+Halifax|4
+Ottawa|22
+Quebec City|2
+Regina|7
+Toronto|48
+Vancouver|5
+Victoria|22
+
+
+select A.city, ifnull(A.cnt,0), ifnull(B.ucnt,0), ifnull(C.qcnt * 1.0 /A.cnt,0), ifnull(D.total,0)  -- for each city, number of ques/ users
+from 
+(select users.city, count(*) as cnt 
+from users
+group by users.city) A 
+left join 
+(select users.city, count(ubadges.uid) as ucnt
+from ubadges, badges, users
+where ubadges.bname = badges.bname
+and badges.type = 'gold'
+and ubadges.uid = users.uid
+group by users.city
+) B
+On A.city = B.city
+left join
+(select users.city, count(questionInfo.pid) as qcnt
+from users, posts, questionInfo
+where users.uid = posts.poster
+and posts.pid = questionInfo.pid
+group by users.city) C
+On A.city = C.city
+left join
+(select A.city, sum(A.cnt) as total
+from ( select users.city, count(votes.vno) as cnt
+from votes, posts, users
+where votes.pid = posts.pid
+and users.uid = posts.poster
+group by votes.pid) A
+group by A.city) D
+On A.city = D.city;
+
+Calgary|2|0|0|0
+Edmonton|6|3|0.333333333333333|2
+Halifax|7|0|0.428571428571429|4
+Ottawa|3|1|0|22
+Quebec City|4|1|1.25|1
+Regina|4|2|0.25|7
+Toronto|9|0|0.111111111111111|48
+Vancouver|5|1|0.2|5
+Victoria|4|0|0.25|22
+Whitehouse|1|0|0|0
+Winnipeg|5|0|0|0

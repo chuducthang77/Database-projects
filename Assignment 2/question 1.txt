@@ -1,0 +1,9 @@
+#1. Find the ide of users with a gold badge and a question post (no aggregation, grouping, nesting)
+
+SELECT Distinct users.uid
+FROM users, badges, ubadges, posts, questions
+WHERE users.uid = ubadges.uid
+AND badges.bname = ubadges.bname
+AND badges.type = 'gold'
+AND posts.poster = users.uid
+AND  posts.pid = questions.pid;

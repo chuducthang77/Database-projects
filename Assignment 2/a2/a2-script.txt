@@ -1,0 +1,294 @@
+--Question 1
+SELECT Distinct users.uid
+FROM users, badges, ubadges, posts, questions
+WHERE users.uid = ubadges.uid
+AND badges.bname = ubadges.bname
+AND badges.type = 'gold'
+AND posts.poster = users.uid
+AND  posts.pid = questions.pid;
+u002
+u028
+u043
+
+--Question 2
+
+SELECT questions.pid, posts.title
+FROM posts, questions, tags t1, tags t2
+WHERE t1.pid = posts.pid
+AND t2.pid = posts.pid
+AND questions.pid = posts.pid
+AND lower(t1.tag) LIKE '%database%'
+AND lower(t2.tag) LIKE '%relational%'
+
+UNION
+
+SELECT questions.pid, posts.title
+FROM posts, questions
+WHERE posts.pid = questions.pid
+AND lower(posts.title) LIKE '%relational database%';
+p001|What is a relational database?
+p012|what is a good Relational Database Software?
+p015|what do we learn in cmput291?
+
+--Question 3
+
+select questions.pid, posts.title
+from questions, posts
+where questions.pid = posts.pid
+
+except
+
+select questions.pid, p2.title
+from questions, answers, posts p1, posts p2
+where questions.pid = answers.qid 
+and answers.pid = p1.pid
+and questions.pid = p2.pid
+and datetime(p1.pdate) <= datetime(p2.pdate, '+3 days');
+p003|Why use SQL?
+p012|what is a good Relational Database Software?
+p014|How do we model ER diagrams?
+p018|why do we learn sqlite3?
+p019|what is relational arithmetic?
+p020|What is the goal of this assignment?
+p027|is cmput291 difficult?
+
+--Question 4
+
+select p1.poster
+from posts p1, posts p2, answers
+where p1.pid = answers.pid
+and p2.pid = answers.qid
+and p1.poster = p2.poster
+group by p1.poster
+having count(p2.poster) > 2
+
+INTERSECT
+
+select posts.poster
+from questions, posts
+where questions.pid = posts.pid
+group by posts.poster
+having count(questions.pid) > 2;
+u040
+u050
+
+--Question 5
+select posts.poster
+from questions, posts
+where questions.pid = posts.pid
+
+intersect
+
+select posts.poster
+from answers, posts
+where answers.pid = posts.pid
+
+intersect
+ 
+select posts.poster
+from votes, posts
+where votes.pid = posts.pid
+group by posts.poster 
+having count(votes.vno) > 4;
+u028
+u035
+
+--Question 6
+select A.tag, B.pcnt, A.cnt
+    from
+    (select tags.tag, count(votes.vno) as cnt
+    from votes, tags
+    where tags.pid = votes.pid
+    group by tags.tag
+    order by cnt desc
+    limit 3) A
+left join
+    (select tags.tag, count(posts.pid) as pcnt
+    from tags, posts
+    where tags.pid = posts.pid
+    group by tags.tag) B
+on A.tag = B.tag;
+sleep|3|70
+fun|3|70
+boring|2|46
+
+--Question 7
+select A.pdate, A.tag, A.cnt
+    from 
+    (select posts.pdate, tags.tag, count(tags.pid) as cnt 
+    from tags, posts
+    where tags.pid = posts.pid
+    group by posts.pdate, tags.tag
+    order by posts.pdate, cnt desc) A, 
+    (select C.pdate, max(C.cnt) as cnt
+    from ( select posts.pdate, tags.tag, count(tags.pid) as cnt
+            from tags, posts
+            where tags.pid = posts.pid
+            group by posts.pdate, tags.tag
+            order by posts.pdate, cnt desc
+            ) as C
+    group by C.pdate) B
+where A.pdate == B.pdate 
+and A.cnt == B.cnt;
+2020-09-11|tieTag1|2
+2020-09-11|relational|2
+2020-09-11|frequentTag1|2
+2020-09-11|database|2
+2020-09-12|sql|1
+2020-09-12|relational|1
+2020-09-12|data|1
+2020-09-12|Database|1
+2020-09-14|relational|3
+2020-09-14|query|3
+2020-09-18|frequentTag3|3
+2020-09-21|sql language|1
+2020-09-21|query|1
+2020-09-21|database|1
+2020-09-21|RELATIONAL|1
+2020-09-26|sql language|1
+2020-09-26|database|1
+2020-10-01|sleep|3
+2020-10-01|fun|3
+
+--Question 8
+
+select
+    E.poster,
+    ifnull(A.pid_ques,0),
+    ifnull(B.pid_ans,0),
+    ifnull(C.pid_cast,0),
+    ifnull(D.total,0)
+from (
+    select distinct A.poster from (select posts.poster, count(questions.pid) as pid_ques -- for each user, total number of q
+from posts, questions
+where posts.pid = questions.pid
+group by posts.poster) A
+    union
+    select distinct B.poster from (select posts.poster, count(answers.pid) as pid_ans -- for each user, total number of q
+from posts, answers
+where posts.pid = answers.pid
+group by posts.poster) B
+    union
+    select distinct C.uid from (select votes.uid, count(*) as pid_cast -- for each user, total number of casted votes
+from votes
+group by votes.uid) C
+    union
+    select distinct D.poster from (select t1.poster, sum(num) as total from ( -- for each user, total number of received votes
+select posts.poster, votes.pid, count(votes.vno) as num
+from votes, posts
+where votes.pid = posts.pid
+group by votes.pid ) t1
+group by t1.poster) D
+) as E
+    left outer join (select posts.poster, count(questions.pid) as pid_ques -- for each user, total number of q
+from posts, questions
+where posts.pid = questions.pid
+group by posts.poster) A on A.poster = E.poster
+    left outer join (select posts.poster, count(answers.pid) as pid_ans -- for each user, total number of q
+from posts, answers
+where posts.pid = answers.pid
+group by posts.poster) B on B.poster = E.poster
+    left outer join (select votes.uid, count(*) as pid_cast -- for each user, total number of casted votes
+from votes
+group by votes.uid) C on C.uid = E.poster
+    left outer join (select t1.poster, sum(num) as total from ( -- for each user, total number of received votes
+select posts.poster, votes.pid, count(votes.vno) as num
+from votes, posts
+where votes.pid = posts.pid
+group by votes.pid ) t1
+group by t1.poster) D on D.poster = E.poster;
+u001|0|0|1|0
+u002|1|0|8|5
+u003|0|0|5|0
+u004|0|0|4|0
+u005|0|0|10|0
+u006|0|0|6|0
+u007|0|1|6|22
+u008|0|0|4|0
+u009|0|0|6|0
+u010|0|0|4|0
+u011|0|0|4|0
+u012|0|1|5|1
+u013|0|1|4|1
+u014|0|0|2|0
+u015|0|0|8|0
+u016|0|0|2|0
+u017|0|0|8|0
+u021|0|0|2|0
+u022|0|0|1|0
+u023|1|5|0|1
+u024|0|0|8|0
+u028|1|2|0|6
+u030|3|2|1|0
+u032|0|0|8|0
+u034|0|0|1|0
+u035|1|1|0|48
+u038|0|0|1|0
+u040|3|3|0|2
+u043|1|0|2|0
+u044|0|0|1|0
+u049|1|0|0|22
+u050|3|3|0|4
+
+--Question 9
+Create view questionInfo(pid, uid, theaid, voteCnt, ansCnt)
+as select A.pid, A.poster, A.theaid, ifnull(B.num,0), ifnull(C.cnt, 0)
+from (select questions.pid, posts.pdate, posts.poster, questions.theaid
+        from questions, posts
+        where questions.pid = posts.pid
+        and date(posts.pdate) >= date('now', '-1 month')) A 
+    left join 
+    (select votes.pid, count(*) as num
+        from votes, questions
+        where votes.pid = questions.pid
+        group by votes.pid) B 
+    ON A.pid = B.pid
+    left join 
+    (select answers.qid, count(*) as cnt
+    from answers
+    group by answers.qid) C 
+    ON A.pid = C.qid;
+
+
+--Question 10
+select A.city, ifnull(A.cnt,0), ifnull(B.ucnt,0), ifnull(C.qcnt * 1.0 /A.cnt,0), ifnull(D.total,0)  -- for each city, number of ques/ users
+from 
+    (select users.city, count(*) as cnt 
+    from users
+    group by users.city) A 
+    left join 
+    (select users.city, count(ubadges.uid) as ucnt
+    from ubadges, badges, users
+    where ubadges.bname = badges.bname
+    and badges.type = 'gold'
+    and ubadges.uid = users.uid
+    group by users.city) B
+    On A.city = B.city
+    left join
+    (select users.city, count(questionInfo.pid) as qcnt
+    from users, posts, questionInfo
+    where users.uid = posts.poster
+    and posts.pid = questionInfo.pid
+    group by users.city) C
+    On A.city = C.city
+    left join
+    (select A.city, sum(A.cnt) as total
+    from ( select users.city, count(votes.vno) as cnt
+            from votes, posts, users
+            where votes.pid = posts.pid
+            and users.uid = posts.poster
+            and date(posts.pdate) >= date('now', '-1 month')
+            group by votes.pid) A
+    group by A.city) D 
+    On A.city = D.city;
+Calgary|2|0|0|0
+Edmonton|6|3|0.333333333333333|2
+Halifax|7|0|0.428571428571429|4
+Ottawa|3|1|0|22
+Quebec City|4|1|1.25|1
+Regina|4|2|0.25|7
+Toronto|9|0|0.111111111111111|48
+Vancouver|5|1|0.2|5
+Victoria|4|0|0.25|22
+Whitehouse|1|0|0|0
+Winnipeg|5|0|0|0

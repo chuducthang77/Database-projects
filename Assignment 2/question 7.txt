@@ -1,0 +1,161 @@
+#7. For each day of a post, find the most frequently used tag for that day (in case of ties, return them all). The result will include for each day and each tag used in that day, the number of posts.
+
+select tags.pid, tags.tag, posts.pdate -- find the all the date and tags associated with p
+from tags, posts
+where tags.pid = posts.pid;
+
+p001|relational|2020-09-03
+p001|database|2020-09-03
+p001|frequentTag1|2020-09-03
+p002|relational|2020-09-04
+p002|Database|2020-09-04
+p002|sql|2020-09-04
+p002|data|2020-09-04
+p003|sql|2020-09-03
+p003|CMPUT291|2020-09-03
+p003|relational|2020-09-03
+p003|frequentTag1|2020-09-03
+p003|tieTag1|2020-09-03
+p006|database|2020-09-03
+p006|computing|2020-09-03
+p006|tieTag1|2020-09-03
+p007|Database|2020-09-10
+p007|frequentTag3|2020-09-10
+p008|Database|2020-09-06
+p008|access|2020-09-06
+p009|relational|2020-09-06
+p009|query|2020-09-06
+p009|frequentTag3|2020-09-06
+p010|relational|2020-09-06
+p010|query|2020-09-06
+p010|frequentTag3|2020-09-06
+p011|relational|2020-09-06
+p011|Sql language|2020-09-06
+p012|sql|2020-09-06
+p012|query|2020-09-06
+p013|sql|2020-09-10
+p013|query|2020-09-10
+p013|frequentTag3|2020-09-10
+p014|sql language|2020-09-10
+p014|relational|2020-09-10
+p014|frequentTag3|2020-09-10
+p028|database|2020-09-18
+p015|RELATIONAL|2020-09-13
+p015|database|2020-09-13
+p016|sql language|2020-09-18
+p017|query|2020-09-13
+p017|sql language|2020-09-13
+p031|fun|2020-09-23
+p031|sleep|2020-09-23
+p031|boring|2020-09-23
+p031|extra tag|2020-09-23
+p031|just here|2020-09-23
+p032|fun|2020-09-23
+p032|sleep|2020-09-23
+p033|fun|2020-09-23
+p033|tag tag|2020-09-23
+p033|more tag|2020-09-23
+p034|sleep|2020-09-23
+p034|boring|2020-09-23
+p034|test tag|2020-09-23
+p034|tag test|2020-09-23
+
+select posts.pdate, tags.tag, count(tags.pid) as num -- group for everyday, every tag
+from tags, posts
+where tags.pid = posts.pid
+group by posts.pdate, tags.tag
+order by posts.pdate, num desc;
+
+2020-09-03|database|2
+2020-09-03|frequentTag1|2
+2020-09-03|relational|2
+2020-09-03|tieTag1|2
+2020-09-03|CMPUT291|1
+2020-09-03|computing|1
+2020-09-03|sql|1
+2020-09-04|Database|1
+2020-09-04|data|1
+2020-09-04|relational|1
+2020-09-04|sql|1
+2020-09-06|query|3
+2020-09-06|relational|3
+2020-09-06|frequentTag3|2
+2020-09-06|Database|1
+2020-09-06|Sql language|1
+2020-09-06|access|1
+2020-09-06|sql|1
+2020-09-10|frequentTag3|3
+2020-09-10|Database|1
+2020-09-10|query|1
+2020-09-10|relational|1
+2020-09-10|sql|1
+2020-09-10|sql language|1
+2020-09-13|RELATIONAL|1
+2020-09-13|database|1
+2020-09-13|query|1
+2020-09-13|sql language|1
+2020-09-18|database|1
+2020-09-18|sql language|1
+2020-09-23|fun|3
+2020-09-23|sleep|3
+2020-09-23|boring|2
+2020-09-23|extra tag|1
+2020-09-23|just here|1
+2020-09-23|more tag|1
+2020-09-23|tag tag|1
+2020-09-23|tag test|1
+2020-09-23|test tag|1
+
+
+select p1.pdate, max(p1.num) as cnt  -- return only the tag most frequently used (tie) 
+from ( select posts.pdate, tags.tag, count(tags.pid) as num
+from tags, posts
+where tags.pid = posts.pid
+group by posts.pdate, tags.tag
+order by posts.pdate, num desc
+) as p1
+group by p1.pdate;
+
+2020-09-03|2
+2020-09-04|1
+2020-09-06|3
+2020-09-10|3
+2020-09-13|1
+2020-09-18|1
+2020-09-23|3
+
+select A.pdate, A.tag, A.num
+from (select posts.pdate, tags.tag, count(tags.pid) as num 
+from tags, posts
+where tags.pid = posts.pid
+group by posts.pdate, tags.tag
+order by posts.pdate, num desc) A, (select p1.pdate, max(p1.num) as cnt
+from ( select posts.pdate, tags.tag, count(tags.pid) as num
+from tags, posts
+where tags.pid = posts.pid
+group by posts.pdate, tags.tag
+order by posts.pdate, num desc
+) as p1
+group by p1.pdate) B
+where A.pdate == B.pdate 
+and A.num == B.cnt;
+
+2020-09-03|database|2
+2020-09-03|frequentTag1|2
+2020-09-03|relational|2
+2020-09-03|tieTag1|2
+2020-09-04|Database|1
+2020-09-04|data|1
+2020-09-04|relational|1
+2020-09-04|sql|1
+2020-09-06|query|3
+2020-09-06|relational|3
+2020-09-10|frequentTag3|3
+2020-09-13|RELATIONAL|1
+2020-09-13|database|1
+2020-09-13|query|1
+2020-09-13|sql language|1
+2020-09-18|database|1
+2020-09-18|sql language|1
+2020-09-23|fun|3
+2020-09-23|sleep|3

@@ -1,0 +1,109 @@
+Find the id of those users who have posted both questions and answers and their posts have received more than 4 votes overall.
+
+select questions.pid, posts.poster
+from questions, posts
+where questions.pid = posts.pid;
+
+p001|u002
+p003|u050
+p006|u050
+p009|u050
+p012|u030
+p014|u030
+p015|u023
+p018|u028
+p019|u030
+p020|u043
+p021|u040
+p024|u040
+p027|u040
+p031|u035
+p033|u049
+
+select answers.pid, posts.poster
+from answers, posts
+where answers.pid = posts.pid;
+
+p002|u012
+p004|u050
+p005|u028
+p007|u050
+p008|u028
+p010|u050
+p011|u023
+p013|u030
+p016|u023
+p017|u023
+p022|u040
+p023|u013
+p025|u040
+p026|u023
+p028|u030
+p029|u040
+p030|u023
+p032|u035
+p034|u007
+
+select votes.pid, posts.poster, count(votes.vno)
+from votes, posts
+where votes.pid = posts.pid
+group by votes.pid;
+
+p001|u002|5
+p002|u012|1
+p003|u050|1
+p004|u050|1
+p005|u028|2
+p007|u050|1
+p008|u028|2
+p010|u050|1
+p018|u028|2
+p023|u013|1
+p026|u023|1
+p027|u040|1
+p029|u040|1
+p031|u035|24
+p032|u035|24
+p033|u049|22
+p034|u007|22
+
+select A.poster
+from (
+select posts.poster, count(votes.vno) as cnt
+from votes, posts
+where votes.pid = posts.pid
+group by votes.pid, posts.poster) A
+group by A.poster
+having sum(cnt) > 4;
+
+p001|5|u002
+p031|24|u035
+p032|24|u035
+p033|22|u049
+p034|22|u007
+
+select posts.poster
+from questions, posts
+where questions.pid = posts.pid
+
+intersect
+
+select posts.poster
+from answers, posts
+where answers.pid = posts.pid
+
+intersect
+
+select A.poster
+from (
+select posts.poster, count(votes.vno) as cnt
+from votes, posts
+where votes.pid = posts.pid
+group by votes.pid, posts.poster) A
+group by A.poster
+having sum(cnt) > 4;
+
+u028
+u035;
+
+

@@ -1,0 +1,158 @@
+
+Find the id and title of questions that are not answered within three days after their postings. Hint: Check out Date and Time functions in SQLite.
+
+select questions.pid, posts.pdate
+   ...> from questions, posts
+   ...> where questions.pid = posts.pid;
+
+p001|2020-09-03
+p003|2020-09-03
+p006|2020-09-03
+p009|2020-09-06
+p012|2020-09-06
+p014|2020-09-10
+p015|2020-09-13
+p018|2020-09-10
+p019|2020-09-06
+p020|2020-09-03
+p021|2020-09-03
+p024|2020-09-03
+p027|2020-08-04
+p031|2020-09-23
+p033|2020-09-23
+
+select questions.pid, answers.pid
+   ...> from questions, answers
+   ...> where questions.pid = answers.qid;
+
+p001|p002
+p003|p004
+p003|p005
+p006|p007
+p006|p008
+p009|p010
+p009|p011
+p012|p013
+p014|p028
+p015|p030
+p015|p016
+p015|p017
+p021|p022
+p021|p023
+p024|p025
+p024|p026
+p027|p029
+p031|p032
+p033|p034
+
+select answers.pid, questions.pid, posts.pdate 
+from questions, answers, posts 
+where questions.pid = answers.qid 
+and answers.pid = posts.pid;
+
+	  day answer  day question
+p002|p001|2020-09-04
+p004|p003|2020-09-10
+p005|p003|2020-09-09
+p007|p006|2020-09-10
+p008|p006|2020-09-06
+p010|p009|2020-09-06
+p011|p009|2020-09-06
+p013|p012|2020-09-10
+p028|p014|2020-09-18
+p030|p015|2020-09-28
+p016|p015|2020-09-18
+p017|p015|2020-09-13
+p022|p021|2020-09-10
+p023|p021|2020-09-06
+p025|p024|2020-09-18
+p026|p024|2020-09-06
+p029|p027|2020-09-06
+p032|p031|2020-09-23
+p034|p033|2020-09-23
+
+select answers.pid, questions.pid, p1.pdate, p2.pdate 
+from questions, answers, posts p1, posts p2
+where questions.pid = answers.qid 
+and answers.pid = p1.pid
+and questions.pid = p2.pid;
+ans  ques day answer day question
+p002|p001|2020-09-04|2020-09-03 
+p004|p003|2020-09-10|2020-09-03 (not qualified)
+p005|p003|2020-09-09|2020-09-03
+p007|p006|2020-09-10|2020-09-03 
+p008|p006|2020-09-06|2020-09-03 (qualified even p007 above answer after 3 days)
+ p010|p009|2020-09-06|2020-09-06	
+p011|p009|2020-09-06|2020-09-06 
+p013|p012|2020-09-10|2020-09-06 
+p028|p014|2020-09-18|2020-09-10
+p030|p015|2020-09-28|2020-09-13
+p016|p015|2020-09-18|2020-09-13
+p017|p015|2020-09-13|2020-09-13	
+p022|p021|2020-09-10|2020-09-03
+p023|p021|2020-09-06|2020-09-03 
+p025|p024|2020-09-18|2020-09-03
+p026|p024|2020-09-06|2020-09-03 
+p029|p027|2020-09-06|2020-08-04 
+p032|p031|2020-09-23|2020-09-23 
+p034|p033|2020-09-23|2020-09-23 
+
+select answers.pid, questions.pid, p1.pdate, p2.pdate 
+from questions, answers, posts p1, posts p2
+where questions.pid = answers.qid 
+and answers.pid = p1.pid
+and questions.pid = p2.pid
+and datetime(p1.pdate) <= datetime(p2.pdate, '+3 days');
+
+p002|p001|2020-09-04|2020-09-03
+p008|p006|2020-09-06|2020-09-03
+p010|p009|2020-09-06|2020-09-06
+p011|p009|2020-09-06|2020-09-06
+p017|p015|2020-09-13|2020-09-13
+p023|p021|2020-09-06|2020-09-03
+p026|p024|2020-09-06|2020-09-03
+p032|p031|2020-09-23|2020-09-23
+p034|p033|2020-09-23|2020-09-23
+
+select questions.pid, posts.title
+from questions, posts
+where questions.pid = posts.pid
+
+except
+
+select distinct questions.pid, p2.title
+from questions, answers, posts p1, posts p2
+where questions.pid = answers.qid 
+and answers.pid = p1.pid
+and questions.pid = p2.pid
+and datetime(p1.pdate) <= datetime(p2.pdate, '+3 days');
+
+p001
+p006
+p009
+p015
+p021
+p024
+p031
+p033
+
+select questions.pid, posts.title
+from questions, posts
+where questions.pid = posts.pid
+
+except
+
+select distinct questions.pid, p2.title
+from questions, answers, posts p1, posts p2
+where questions.pid = answers.qid 
+and answers.pid = p1.pid
+and questions.pid = p2.pid
+and datetime(p1.pdate) <= datetime(p2.pdate, '+3 days');
+
+p003|Why use SQL?
+p012|what is a good Relational Database Software?
+p014|How do we model ER diagrams?
+p018|why do we learn sqlite3?
+p019|what is relational arithmetic?
+p020|What is the goal of this assignment?
+p027|is cmput291 difficult?
